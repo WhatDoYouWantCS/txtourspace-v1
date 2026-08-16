@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Txtorspace — Discovery & Messaging</title>
+    <meta name="description" content="A premium messaging and user discovery application featuring rich local persistence, real-time simulated chat networks, group chats, messaging workflows." />
+    <meta property="og:title" content="Txtorspace" />
+    <meta property="og:description" content="A premium messaging and user discovery network." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <meta name="theme-color" content="#09090b" />
+    <script>
+      window.deferredInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredInstallPrompt = e;
+        window.dispatchEvent(new CustomEvent('pwa-prompt-available', { detail: e }));
+      });
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/firebase-messaging-sw.js')
+            .then((reg) => console.log('Combined PWA & Messaging Service Worker registered:', reg.scope))
+            .catch((err) => console.log('Service Worker registration failed:', err));
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

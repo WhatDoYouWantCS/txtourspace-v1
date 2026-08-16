@@ -1,0 +1,251 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==========================================
+    // 1. GLOBAL SAFETY NET
+    // ==========================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ==========================================
+    // 2. REUSABLE PRIMITIVES & HELPERS
+    // ==========================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn();
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ==========================================
+    // 3. VALIDATION BLUEPRINTS (ANTI-UPDATE-GAP)
+    // ==========================================
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() <= 128
+        && data.fullName is string && data.fullName.size() <= 100
+        && data.username is string && data.username.size() <= 50 && data.username.matches('^[a-zA-Z0-9_]+$')
+        && data.usernameLower is string && data.usernameLower.size() <= 50
+        && data.email is string && data.email.size() <= 150
+        && (!data.keys().contains('phone') || (data.phone is string && data.phone.size() <= 30))
+        && (!data.keys().contains('birthDate') || (data.birthDate is string && data.birthDate.size() <= 20))
+        && (!data.keys().contains('profileImage') || (data.profileImage is string && data.profileImage.size() <= 100000))
+        && (!data.keys().contains('bio') || (data.bio is string && data.bio.size() <= 500))
+        && data.createdAt is string
+        && data.lastSeen is string
+        && data.online is bool
+        && data.blockedUsers is list && data.blockedUsers.size() <= 100
+        && data.reportedBy is list && data.reportedBy.size() <= 100;
+    }
+
+    function isValidChatRequest(data) {
+      return data.requestId is string && data.requestId.size() <= 128
+        && data.senderId is string && data.senderId.size() <= 128
+        && data.receiverId is string && data.receiverId.size() <= 128
+        && data.status is string && (data.status == 'pending' || data.status == 'accepted' || data.status == 'declined')
+        && data.createdAt is string;
+    }
+
+    function isValidChat(data) {
+      return data.chatId is string && data.chatId.size() <= 128
+        && data.isGroup is bool
+        && data.members is list && data.members.size() <= 500
+        && data.createdAt is string
+        && data.updatedAt is string
+        && (!data.keys().contains('lastMessage') || (data.lastMessage is string && data.lastMessage.size() <= 2000))
+        && (!data.keys().contains('lastMessageAt') || data.lastMessageAt is string)
+        && (!data.keys().contains('lastMessageSenderId') || (data.lastMessageSenderId is string && data.lastMessageSenderId.size() <= 128))
+        && (!data.keys().contains('pinned') || data.pinned is map)
+        && (!data.keys().contains('muted') || data.muted is map)
+        && (!data.keys().contains('favorites') || data.favorites is map)
+        && (!data.keys().contains('deletedBy') || data.deletedBy is map)
+        && (!data.keys().contains('name') || (data.name is string && data.name.size() <= 100))
+        && (!data.keys().contains('image') || (data.image is string && data.image.size() <= 100000))
+        && (!data.keys().contains('ownerId') || (data.ownerId is string && data.ownerId.size() <= 128))
+        && (!data.keys().contains('admins') || (data.admins is list && data.admins.size() <= 50))
+        && (!data.keys().contains('permissions') || data.permissions is map);
+    }
+
+    function isValidMessage(data) {
+      return data.messageId is string && data.messageId.size() <= 128
+        && data.senderId is string && data.senderId.size() <= 128
+        && data.text is string && data.text.size() <= 5000
+        && data.createdAt is string
+        && (!data.keys().contains('edited') || data.edited is bool)
+        && (!data.keys().contains('deleted') || data.deleted is bool)
+        && (!data.keys().contains('replyTo') || (data.replyTo is string && data.replyTo.size() <= 128))
+        && (!data.keys().contains('readBy') || (data.readBy is list && data.readBy.size() <= 500));
+    }
+
+    function isValidStory(data) {
+      return data.storyId is string && data.storyId.size() <= 128
+        && data.creatorId is string && data.creatorId.size() <= 128
+        && data.creatorName is string && data.creatorName.size() <= 100
+        && data.creatorImage is string && data.creatorImage.size() <= 100000
+        && data.text is string && data.text.size() <= 1000
+        && data.bgColor is string && data.bgColor.size() <= 200
+        && data.createdAt is string
+        && data.likes is list && data.likes.size() <= 1000
+        && data.replies is list && data.replies.size() <= 100
+        && (!data.keys().contains('views') || (data.views is list && data.views.size() <= 1000));
+    }
+
+    function isValidNotificationItem(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.type is string && data.type.size() <= 50
+        && data.senderName is string && data.senderName.size() <= 100
+        && data.senderImage is string && data.senderImage.size() <= 100000
+        && data.messageText is string && data.messageText.size() <= 1000
+        && (!data.keys().contains('chatId') || (data.chatId is string && data.chatId.size() <= 128))
+        && data.createdAt is string;
+    }
+
+
+    // ==========================================
+    // 4. COLLECTION MATCH RULES
+    // ==========================================
+
+    // --- USERS COLLECTION ---
+    match /users/{userId} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // --- CHAT REQUESTS ---
+    match /chatRequests/{requestId} {
+      allow get: if isSignedIn() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
+      allow list: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
+
+      allow create: if isVerified() && request.auth.uid == incoming().senderId
+        && isValidId(requestId)
+        && isValidChatRequest(incoming())
+        && exists(/databases/$(database)/documents/users/$(incoming().receiverId)) // Relational Sync Check
+        && incoming().keys().hasAll(['requestId', 'senderId', 'receiverId', 'status', 'createdAt'])
+        && incoming().keys().size() == 5;
+
+      allow update: if isVerified() 
+        && isValidChatRequest(incoming())
+        && (request.auth.uid == existing().receiverId)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+        && (incoming().status == 'accepted' || incoming().status == 'declined');
+
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.senderId;
+    }
+
+    // --- CHATS ---
+    match /chats/{chatId} {
+      allow get: if isSignedIn() && request.auth.uid in resource.data.members;
+      allow list: if isSignedIn() && request.auth.uid in resource.data.members;
+
+      allow create: if isVerified() && request.auth.uid in incoming().members
+        && isValidId(chatId)
+        && isValidChat(incoming())
+        && incoming().keys().hasAll(['chatId', 'isGroup', 'members', 'createdAt', 'updatedAt'])
+        && incoming().keys().size() <= 17;
+
+      allow update: if isVerified() 
+        && request.auth.uid in existing().members
+        && isValidChat(incoming())
+        && (
+          // Action 1: Standard members updating metadata or self list
+          (incoming().diff(existing()).affectedKeys().hasOnly(['members', 'updatedAt', 'pinned', 'muted', 'favorites', 'deletedBy'])) ||
+          // Action 2: Admin/Owner updating settings
+          (existing().isGroup && (request.auth.uid == existing().ownerId || request.auth.uid in existing().admins)
+            && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'image', 'admins', 'permissions', 'updatedAt', 'lastMessage', 'lastMessageAt', 'lastMessageSenderId']))
+        );
+
+      allow delete: if false;
+
+      // --- MESSAGES SUBCOLLECTION ---
+      match /messages/{messageId} {
+        allow get, list: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+
+        allow create: if isVerified() 
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members
+          && request.auth.uid == incoming().senderId
+          && isValidId(messageId)
+          && isValidMessage(incoming())
+          && incoming().keys().hasAll(['messageId', 'senderId', 'text', 'createdAt'])
+          && incoming().keys().size() <= 8;
+
+        allow update: if isVerified()
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members
+          && isValidMessage(incoming())
+          && (
+            // Action 1: Sender modifying their text or deletion flag
+            (request.auth.uid == existing().senderId && incoming().diff(existing()).affectedKeys().hasOnly(['text', 'edited', 'deleted'])) ||
+            // Action 2: Anyone marking a message as read
+            (incoming().diff(existing()).affectedKeys().hasOnly(['readBy']))
+          );
+
+        allow delete: if isVerified()
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members
+          && request.auth.uid == existing().senderId;
+      }
+    }
+
+    // --- STORIES ---
+    match /stories/{storyId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isVerified() && request.auth.uid == incoming().creatorId
+        && isValidId(storyId)
+        && isValidStory(incoming())
+        && incoming().keys().hasAll(['storyId', 'creatorId', 'creatorName', 'creatorImage', 'text', 'bgColor', 'createdAt', 'likes', 'replies'])
+        && incoming().keys().size() <= 10;
+
+      allow update: if isVerified()
+        && isValidStory(incoming())
+        && (
+          // Action 1: Owner updating story body/background or views
+          (request.auth.uid == existing().creatorId && incoming().diff(existing()).affectedKeys().hasOnly(['text', 'bgColor', 'views'])) ||
+          // Action 2: Other users liking, replying, or viewing
+          (incoming().diff(existing()).affectedKeys().hasOnly(['likes', 'replies', 'views']))
+        );
+
+      allow delete: if isVerified() && request.auth.uid == resource.data.creatorId;
+    }
+
+    // --- NOTIFICATIONS ---
+    match /notifications/{notificationId} {
+      allow get: if isSignedIn() && (request.auth.uid == notificationId || resource.data.get('recipientId', '') == request.auth.uid);
+      allow list: if isSignedIn() && (notificationId == request.auth.uid || resource.data.get('recipientId', '') == request.auth.uid);
+      
+      allow create: if isVerified()
+        && isValidId(notificationId)
+        && isValidNotificationItem(incoming())
+        && incoming().keys().hasAll(['id', 'type', 'senderName', 'senderImage', 'messageText', 'createdAt'])
+        && incoming().keys().size() <= 7;
+
+      allow update: if false;
+      allow delete: if isSignedIn() && (request.auth.uid == notificationId || resource.data.get('recipientId', '') == request.auth.uid);
+    }
+
+    // --- RESERVED USERNAMES ---
+    match /usernames/{username} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.auth.uid == incoming().uid;
+      allow update, delete: if false;
+    }
+
+  }
+}

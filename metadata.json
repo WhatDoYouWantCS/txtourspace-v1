@@ -1,0 +1,10 @@
+{
+  "name": "TxtDiscovery App",
+  "description": "A premium iOS-styled messaging and user discovery web application featuring rich local persistence, real-time simulated chat networks, group chats, messaging workflows, and Instagram-style username checking.",
+  "requestFramePermissions": [
+    "notifications"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

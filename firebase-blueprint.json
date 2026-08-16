@@ -1,0 +1,139 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with discovery and bio fields",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "fullName": { "type": "string" },
+        "username": { "type": "string" },
+        "usernameLower": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "birthDate": { "type": "string" },
+        "profileImage": { "type": "string" },
+        "bio": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "lastSeen": { "type": "string" },
+        "online": { "type": "boolean" },
+        "blockedUsers": { "type": "array" },
+        "reportedBy": { "type": "array" }
+      },
+      "required": ["uid", "fullName", "username", "usernameLower", "email"]
+    },
+    "ChatRequest": {
+      "title": "ChatRequest",
+      "description": "Friend discovery chat connection requests",
+      "type": "object",
+      "properties": {
+        "requestId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["requestId", "senderId", "receiverId", "status", "createdAt"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "Direct conversation or Group channel metadata",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string" },
+        "isGroup": { "type": "boolean" },
+        "members": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "lastMessage": { "type": "string" },
+        "lastMessageAt": { "type": "string" },
+        "lastMessageSenderId": { "type": "string" },
+        "pinned": { "type": "object" },
+        "muted": { "type": "object" },
+        "favorites": { "type": "object" },
+        "deletedBy": { "type": "object" },
+        "name": { "type": "string" },
+        "image": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "admins": { "type": "array" },
+        "permissions": { "type": "object" }
+      },
+      "required": ["chatId", "isGroup", "members", "createdAt", "updatedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A communication message stored within a specific chat",
+      "type": "object",
+      "properties": {
+        "messageId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "edited": { "type": "boolean" },
+        "deleted": { "type": "boolean" },
+        "replyTo": { "type": "string" },
+        "readBy": { "type": "array" }
+      },
+      "required": ["messageId", "senderId", "text", "createdAt"]
+    },
+    "Story": {
+      "title": "Story",
+      "description": "A dynamic social story with custom backgrounds and replies",
+      "type": "object",
+      "properties": {
+        "storyId": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "creatorImage": { "type": "string" },
+        "text": { "type": "string" },
+        "bgColor": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "likes": { "type": "array" },
+        "replies": { "type": "array" },
+        "views": { "type": "array" }
+      },
+      "required": ["storyId", "creatorId", "creatorName", "text", "bgColor", "createdAt"]
+    },
+    "NotificationItem": {
+      "title": "NotificationItem",
+      "description": "In-app system notification for messages or membership activities",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderImage": { "type": "string" },
+        "messageText": { "type": "string" },
+        "chatId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "type", "senderName", "messageText", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Stores user demographic, bio and dynamic status metadata"
+    },
+    "/chatRequests/{requestId}": {
+      "schema": "ChatRequest",
+      "description": "Tracks incoming and accepted discovery requests between users"
+    },
+    "/chats/{chatId}": {
+      "schema": "Chat",
+      "description": "Active channels with configuration, pinned states, and member lists"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Subcollection housing absolute cryptographic message logs for chats"
+    },
+    "/stories/{storyId}": {
+      "schema": "Story",
+      "description": "Interactive, transient micro-blogs published by users with liking ability"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "NotificationItem",
+      "description": "Event alerts pushed to individuals regarding requests and chats"
+    }
+  }
+}

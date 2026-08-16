@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+/* iOS-style custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Elegant Dark Glassmorphism and Panels */
+.glass-panel {
+  background: rgba(28, 28, 30, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid #262626;
+}
+
+.dark .glass-panel {
+  background: rgba(28, 28, 30, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid #262626;
+}
+
+/* Navigation bar glass styled like Elegant Dark header */
+.glass-nav {
+  background: rgba(10, 10, 10, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid #262626;
+}
+
+.dark .glass-nav {
+  background: rgba(10, 10, 10, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid #262626;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  overflow: hidden;
+  user-select: none;
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* iOS message bubbles custom styling (Elegant Dark theme) */
+.bubble-sent {
+  background: linear-gradient(135deg, #0A84FF 0%, #0070E0 100%);
+  color: #ffffff;
+}
+
+.bubble-received {
+  background: #2C2C2E;
+  color: #ffffff;
+}
+
+.dark .bubble-received {
+  background: #2C2C2E;
+  color: #ffffff;
+}
